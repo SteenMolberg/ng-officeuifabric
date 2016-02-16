@@ -1,188 +1,234 @@
 'use strict';
 
 import * as ng from 'angular';
+import {OrgChartPresenceEnum} from './orgChartPresenceEnum';
+import {OrgChartStyleEnum} from './orgChartStyleEnum';
+import {OrgChartSelectModeEnum} from './orgChartSelectModeEnum';
 
-
-/**
- * @ngdoc interface
- * @name IOrgChartScope
- * @module officeuifabric.components.orgchart
- * 
- * @description 
- * Scope used by the orgchart directive
- * 
- * @property {any[]} items              - Contains data to be rendered by the directive
- * @property {string} groupby 
- * @property {string} primarytext
- * @property {string} secondarytext
- * @property {string} image
- * @property {string} presence
- * @property {any[]} selectedItems
- * @property {string} style
- * @property {string} selectMode
- * @property {(groupby: string, group: string => void} getFilter
- * @property {(presence: string) => void} getPresence
- * @property {(style: string): void} getStyle
- * @property {(selectable: string): string} getSelectable
- * @property {(person: any) => void} selectClick
- * @property {} click
- */
 export interface IOrgChartScope extends ng.IScope {
-    click: (person: any) => void;
-    items: any;
-    getFilter: (groupby: string, group: string) => void;
-    getPresence: (presence: string) => void;
-    getSelectable: (selectable: string) => string;
-    getStyle: (style: string) => void;
-    groupby: string;
-    primarytext: string;
-    secondarytext: string;
-    image: string;
-    presence: string;
-    selectedItems: any[];
-    style: string;
-    selectMode: string;
-    selectclick: (person: any) => void;
+  selectMode?: OrgChartSelectModeEnum;
+  items: IOrgChartPersonaScope[];
+  selectedItems: any[];
 }
 
 class OrgChartController {
-    public static $inject: string[] = ['$scope', '$log'];
-    constructor(public $scope: IOrgChartScope, public $log: ng.ILogService) {
-    }
 
+  public static $inject: string[] = ['$scope', '$log'];
 
+  constructor(public $scope: IOrgChartScope, public $log: ng.ILogService) {
+    this.$scope.selectMode = null;
+    this.$scope.items = [];
+  }
 
+  public selectMode: OrgChartSelectModeEnum;
 
+  get items(): IOrgChartPersonaScope[] {
+    return this.$scope.items;
+  }
+  set items(items: IOrgChartPersonaScope[]) {
+    this.$scope.items = items;
+  }
 
+  get selectedItems(): IOrgChartPersonaScope[] {
+    return this.$scope.selectedItems;
+  }
+  set selectedItems(selectedItems: IOrgChartPersonaScope[]) {
+    this.$scope.selectedItems = selectedItems;
+  }
+
+}
+
+export interface IOrgChartAttributes extends ng.IAttributes {
+  uifSelectMode?: string;
 }
 
 /**
  * @ngdoc directive
  * @name uifOrgChart
  * @module officeuifabric.components.orgchart
- * 
+ *
  * @restrict E
- * 
+ *
  * @description
- * 
- * 
- * @see {link }
- * 
+ * `<uif-org-chart />` is the main directive of the module. Renders a list of persons
+ * grouped by a property of your choice using the uifOrgChartGroupBy-filter. The directive
+ * supports a single- and multiple-selectionmode allowing to select and unselect by
+ * clicking each person. The selected items can be retrieved by supplying an array in
+ * the 'uif-selected-items'-attribute.
+ *
+ * See <uif-org-chart-persona /> directive to see valid presence values.
+ *
+ * @see {link http://dev.office.com/fabric/components/orgchart}
+ *
  * @usage
- * 
- * <uif-org-chart 
- *   uif-items="vm.items"
- *   uif-group="{{vm.groupfield}}"
- *   uif-primary-text="{{vm.namefield}}"
- *   uif-secondary-text="{{vm.titlefield}}"
- *   uif-image="{{vm.imagefield}}"
- *   uif-presence="{{vm.presencefield}}"
- *   uif-style="standerd|square"
- *   uif-select-mode="none|single|multiple"
- *   uif-selected-items="vm.selected"
- *   ></uif-org-chart>
- *  
+ *
+ * <uif-org-chart uif-select-mode="single|multiple"
+ *                uif-selected-items="selectedItems">
+ *     <uif-org-chart-group ng-repeat="group in items | uifOrgChartGroupBy: 'department'">
+ *         <uif-org-chart-group-title>{{group}}</uif-org-chart-group-title>
+ *         <uif-org-chart-list>
+ *             <uif-org-chart-persona uif-style="standarx(default)square"
+ *                                    ng-repeat="item in vm.items | filter: {'department': group}"
+ *                                    uif-item="item"
+ *                                    uif-presence="item.presence"
+ *                                    uif-selected="item.selected">
+ *                 <uif-org-chart-image  ng-src="item.imageUrl"></uif-org-chart-image>
+ *                 <uif-org-chart-presence></uif-org-chart-presence>
+ *                 <uif-org-chart-details>
+ *                     <uif-org-chart-primary-text>{{item.name}}</uif-org-chart-primary-text>
+ *                     <uif-org-chart-secondary-text>{{item.title}}</uif-org-chart-secondary-text>
+ *                 </uif-org-chart-details>
+ *             </uif-org-chart-persona>
+ *         </uif-org-chart-list>
+ *     </uif-org-chart-group>
+ * </uif-org-chart>
+ *
+ * About presence: valid presence values are
+ *
  */
 export class OrgChartDirective implements ng.IDirective {
+  public restrict: string = 'E';
+  public transclude: boolean = true;
+  public replace: boolean = true;
+  public template: string = '<div class="ms-OrgChart" ng-transclude ></div>';
+  public controller: any = OrgChartController;
+  public scope: {} = {
+    selectedItems: '=?uifSelectedItems'
+  };
 
-    public restrict: string = 'E';
-    public replace: boolean = true;
-    public controller: any = OrgChartController;
+  public static factory(): ng.IDirectiveFactory {
+    const directive: ng.IDirectiveFactory = () => new OrgChartDirective();
+    return directive;
+  }
 
-    public template: string = '<div class="ms-OrgChart">'
-        + '<div class="ms-OrgChart-group" ng-repeat="group in items | uifOrgChartGroupBy: groupby">'
-        + '<div class="ms-OrgChart-groupTitle">'
-        + '{{group}}'
-        + '</div>'
-        + '<ul class="ms-OrgChart-list">'
-        + '<li class="ms-OrgChart-listItem" ng-repeat="person in items | filter: getFilter(groupby, group)" >'
-        + '<uif-org-chart-persona ></uif-org-chart-persona>'
-        + '</li>'
-        + '</ul>'
-        + '</div>'
-        + '</div>';
+  public link(scope: IOrgChartScope, elem: ng.IAugmentedJQuery, attrs: IOrgChartAttributes, ctrl: OrgChartController): void {
 
-    public scope: {} = {
-        click: '&uifMethod',
-        groupby: '@uifGroup',
-        image: '@uifImage',
-        items: '=uifItems',
-        presence: '@uifPresence',
-        primarytext: '@uifPrimaryText',
-        secondarytext: '@uifSecondaryText',
-        selectMode: '@uifSelectMode',
-        selectedItems: '=uifSelectedItems',
-        style: '@uifStyle'
-    };
-
-    public static factory(): ng.IDirectiveFactory {
-        const directive: ng.IDirectiveFactory = () => new OrgChartDirective();
-        return directive;
+    if (attrs.uifSelectMode) {
+      switch (OrgChartSelectModeEnum[attrs.uifSelectMode]) {
+        case OrgChartSelectModeEnum.single:
+        case OrgChartSelectModeEnum.multiple:
+          ctrl.selectMode = OrgChartSelectModeEnum[attrs.uifSelectMode];
+          break;
+        default:
+          ctrl.$log.error('Error [ngOfficeUIFabric] officeuifabric.components.orgchart - Unsupported select-mode: ' +
+            'The select-mode (\'' + attrs.uifSelectMode + '\) is not supperted. ' +
+            'Supported options are: single, multiple');
+          break;
+      }
     }
 
-    public link(scope: IOrgChartScope, elem: ng.IAugmentedJQuery, attrs: any, controller: OrgChartController): void {
+  }
 
-        // validate selectmode;
-        if (scope.selectMode) {
-            if (OrgChartSelectModeEnum[scope.selectMode] === undefined) {
-                controller.$log.error('Error [ngOfficeUiFabric] officeuifabric.components.orgchart. '
-                    + '\'' + scope.selectMode + '\' is not a valid option for \'uif-select-mode\'. '
-                    + 'Valid options are none|single|multiple.');
-            }
-        } else {
-            scope.selectMode = OrgChartSelectModeEnum[OrgChartSelectModeEnum.none];
-        }
-
-        // validate stylemode
-        if (scope.style) {
-            if (OrgChartStyleModeEnum[scope.style] === undefined) {
-                controller.$log.error('Error [ngOfficeUiFabric] officeuifabric.components.orgchart. '
-                    + '\'' + scope.style + '\' is not a valid option for \'uif-style\'. '
-                    + 'Valid options are standard|square.');
-            }
-        } else {
-            scope.style = OrgChartStyleModeEnum[OrgChartStyleModeEnum.standard];
-        }
-
-        // filter items according to group
-        scope.getFilter = (groupby: string, group: string) => {
-            let filter: any = {};
-            filter[groupby] = group;
-            return filter;
-        };
-
-        // resolve class used for presence display
-        scope.getPresence = (presence: string) => {
-            switch (presence) {
-                case 'available': return 'ms-Persona--available';
-                case 'busy': return 'ms-Persona--busy';
-                case 'away': return 'ms-Persona--away';
-                default: return 'ms-Persona--blocked';
-            }
-        };
-
-        // resolve image style used
-        scope.getStyle = (style: string) => {
-            switch (style) {
-                case OrgChartStyleModeEnum[OrgChartStyleModeEnum.square]: return 'ms-Persona--square';
-                default: return '';
-            }
-        };
-
-        // resolve if items should be displayed as selectable
-        scope.getSelectable = (selectMode: string) => {
-            switch (selectMode) {
-                case OrgChartSelectModeEnum[OrgChartSelectModeEnum.single]:
-                    return 'ms-Persona--selectable';
-                case OrgChartSelectModeEnum[OrgChartSelectModeEnum.multiple]:
-                    return 'ms-Persona--selectable';
-                default:
-                    return '';
-            }
-        };
-    }
 }
 
+/**
+ * @ngdoc directive
+ * @name uifOrgChartGroup
+ * @module officeuifabric.components.orgchart
+ *
+ * @restrict E
+ *
+ * @description
+ * `<uif-org-chart-group />` is a directive used within <uif-org-chart/> directive
+ * even
+ *
+ * @see {link http://dev.office.com/fabric/components/orgchart}
+ *
+ * @usage
+ *
+ * <uif-org-chart-group>
+ *   <uif-org-chart-group-title>{{group.title}}</uif-org-chart-group-title>
+ *   <uif-org-chart-list>
+ *     <uif-org-chart-persona>...</uif-org-chart-persona>
+ *     <uif-org-chart-persona>...</uif-org-chart-persona>
+ *   </uif-org-chart-list>
+ * </uif-org-chart-group >
+ *
+ */
+export class OrgChartGroupDirective implements ng.IDirective {
+  public restrict: string = 'E';
+  public transclude: boolean = true;
+  public replace: boolean = true;
+  public template: string = '<div class="ms-OrgChart-group" ng-transclude ></div>';
+
+  public static factory(): ng.IDirectiveFactory {
+    const directive: ng.IDirectiveFactory = () => new OrgChartGroupDirective();
+    return directive;
+  }
+}
+
+/**
+ * @ngdoc directive
+ * @name uifOrgChartGroupTitle
+ * @module officeuifabric.components.orgchart
+ *
+ * @restrict E
+ *
+ * @description
+ * `<uif-org-chart-group-title />` is a directive used within <uif-org-chart-group/> directive
+ *
+ * @see {link http://dev.office.com/fabric/components/orgchart}
+ *
+ * @usage
+ *
+ * <uif-org-chart-group-title>{{group}}</uif-org-chart-group-title>
+ *
+ */
+export class OrgChartGroupTitleDirective implements ng.IDirective {
+  public restrict: string = 'E';
+  public transclude: boolean = true;
+  public replace: boolean = true;
+  public template: string = '<div class="ms-OrgChart-groupTitle" ng-transclude ></div>';
+
+  public static factory(): ng.IDirectiveFactory {
+    const directive: ng.IDirectiveFactory = () => new OrgChartGroupTitleDirective();
+    return directive;
+  }
+}
+
+/**
+ * @ngdoc directive
+ * @name uifOrgChartList
+ * @module officeuifabric.components.orgchart
+ *
+ * @restrict E
+ *
+ * @description
+ * `<uif-org-chart-list />` is a directive used within <uif-org-chart-group/> directive
+ *
+ * @see {link http://dev.office.com/fabric/components/orgchart}
+ *
+ * @usage
+ *
+ * <uif-org-chart-list>
+ *   <uif-org-chart-persona>...</uif-org-chart-persona>
+ *   <uif-org-chart-persona>...</uif-org-chart-persona>
+ * </uif-org-chart-list>
+ *
+ */
+export class OrgChartListDirective implements ng.IDirective {
+  public restrict: string = 'E';
+  public transclude: boolean = true;
+  public replace: boolean = true;
+  public template: string = '<ul class="ms-OrgChart-list" ng-transclude ></ul>';
+
+  public static factory(): ng.IDirectiveFactory {
+    const directive: ng.IDirectiveFactory = () => new OrgChartListDirective();
+    return directive;
+  }
+}
+
+export interface IOrgChartPersonaScope extends ng.IScope {
+  item: any;
+  personaClick: (event: any) => void;
+  selected: boolean;
+  presence: string;
+}
+
+export interface IOrgChartPersonaAttributes extends ng.IAttributes {
+  uifStyle: string;
+  uifPresence: string;
+}
 
 /**
  * @ngdoc directive
@@ -190,155 +236,448 @@ export class OrgChartDirective implements ng.IDirective {
  * @module officeuifabric.components.orgchart
  *
  * @restrict E
- * 
+ *
  * @description
- * `<uif-org-chart-persona>` directive used internally by the OrgChartDirective 
+ * `<uif-org-chart-persona />` is a directive used within `<uif-org-chart-list/>` directive
+ *
+ * @see {link http://dev.office.com/fabric/components/orgchart}
+ *
+ * @usage
+ *
+ * <uif-org-chart-persona uif-style="standard(default)|square"
+ *                        uif-item="item"
+ *                        uif-presence="item.presence"
+ *                        uif-selected="item.selected">
+ *   <uif-org-chart-image ng-src="item.imageUrl"></uif-org-chart-image>
+ *   <uif-org-chart-presence></uif-org-chart-presence>
+ *   <uif-org-chart-details>
+ *     <uif-org-chart-primary-text>{{item.name}}</uif-org-chart-primary-text>
+ *     <uif-org-chart-secondary-text>{{item.title}}}</uif-org-chart-secondary-text>
+ *   </uif-org-chart-details>
+ * </uif-org-chart-persona>
+ *
+ * uif-presence: Valid options are available|busy|away|blocked|dnd|offline
+ * uif-selected: A boolean value. Allows to preselect the item
+ *
  */
 export class OrgChartPersonaDirective implements ng.IDirective {
 
-    public restrict: string = 'E';
-    public replace: boolean = true;
-    public template: string =
-        '<div ng-class="[\'ms-Persona\','
-        + 'getPresence(person[presence]),'
-        + 'getStyle(style),'
-        + 'getSelectable(selectMode),'
-        + 'getSelected(person)]" ng-click="selectclick(person)" >'
-        + '<div class="ms-Persona-imageArea">'
-        + '<i class="ms-Persona-placeholder ms-Icon ms-Icon--person"></i>'
-        + '<img class="ms-Persona-image" ng-src="{{person[image]}}">'
-        + '</div>'
-        + '<div class="ms-Persona-presence" ng-if="presence" ></div>'
-        + '<div class="ms-Persona-details">'
-        + '<div class="ms-Persona-primaryText">{{person[primarytext]}}</div>'
-        + '<div class="ms-Persona-secondaryText">{{person[secondarytext]}}</div>'
-        + '</div>' // end details
-        + '</div>'; // end persona
+  public restrict: string = 'E';
+  public transclude: boolean = true;
+  public replace: boolean = true;
+  public template: string = '<li class="ms-OrgChart-listItem"><div class="ms-Persona" ng-transclude ></div></li>';
 
-    public static factory(): ng.IDirectiveFactory {
-        const directive: ng.IDirectiveFactory = () => new OrgChartPersonaDirective();
-        return directive;
+  public require: string = '^uifOrgChart';
+
+  public scope: {} = {
+    item: '=?uifItem',
+    presence: '=?uifPresence',
+    selected: '=?uifSelected'
+  };
+
+  constructor(private $log: ng.ILogService) {
+  }
+
+  public static factory(): ng.IDirectiveFactory {
+    const directive: ng.IDirectiveFactory = ($log: ng.ILogService) => new OrgChartPersonaDirective($log);
+    directive.$inject = ['$log'];
+    return directive;
+  }
+
+  public compile(
+    elem: ng.IAugmentedJQuery,
+    attrs: IOrgChartPersonaAttributes,
+    transclude: ng.ITranscludeFunction): ng.IDirectivePrePost {
+    return {
+      post: this.postLink
+    };
+  }
+
+  private postLink(
+    scope: IOrgChartPersonaScope,
+    elem: ng.IAugmentedJQuery,
+    attrs: IOrgChartPersonaAttributes,
+    ctrl: OrgChartController,
+    transclude: ng.ITranscludeFunction): void {
+
+    // handle selection
+    if (scope.selected === undefined) {
+        scope.selected = false;
     }
 
-    public link(scope: IOrgChartScope, elem: ng.IAugmentedJQuery): void {
-
-        scope.selectclick = (person: any) => {
-
-            // if click is assigned
-            if (scope.click) {
-                scope.click({person: person});
-            }
-
-            // handle select person
-            if ((scope.selectMode === OrgChartSelectModeEnum[OrgChartSelectModeEnum.single]
-                || scope.selectMode === OrgChartSelectModeEnum[OrgChartSelectModeEnum.multiple])
-                && scope.selectedItems) {
-
-                if (!elem.hasClass('is-selected')) {
-
-                    if (scope.selectMode === OrgChartSelectModeEnum[OrgChartSelectModeEnum.single]) {
-                        scope.selectedItems.splice(0, scope.selectedItems.length);
-                        let selectedPersonItems: NodeListOf<Element> =
-                            elem[0].parentElement.parentElement.parentElement.parentElement.querySelectorAll('.is-selected');
-                        for (let i: number = 0; i < selectedPersonItems.length; i++) {
-                            selectedPersonItems[i].classList.remove('is-selected');
-                        }
-                    }
-
-                    elem.addClass('is-selected');
-                    scope.selectedItems.push(person);
-
-                } else {
-                    elem.removeClass('is-selected');
-                    let index: any = scope.selectedItems.indexOf(person);
-                    if (index > -1) {
-                        scope.selectedItems.splice(index, 1);
-                    }
-                }
-            }
-
-        };
+    // handle status-attribute
+    if (scope.presence) {
+      switch (OrgChartPresenceEnum[scope.presence]) {
+        case OrgChartPresenceEnum.available: elem.children().eq(0).addClass('ms-Persona--available'); break;
+        case OrgChartPresenceEnum.busy: elem.children().eq(0).addClass('ms-Persona--busy'); break;
+        case OrgChartPresenceEnum.away: elem.children().eq(0).addClass('ms-Persona--away'); break;
+        case OrgChartPresenceEnum.blocked: elem.children().eq(0).addClass('ms-Persona--blocked'); break;
+        case OrgChartPresenceEnum.dnd: elem.children().eq(0).addClass('ms-Persona--dnd'); break;
+        case OrgChartPresenceEnum.offline: elem.children().eq(0).addClass('ms-Persona--offline'); break;
+        default:
+          ctrl.$log.error('Error [ngOfficeUIFabric] officeuifabric.components.orgchart - Unsupported presence: ' +
+            'The presence (\'' + scope.presence + '\') is not supperted by the Office UI Fabric. ' +
+            'Supported options are: available, busy, away, blocked, dnd, offline.');
+          break;
+      }
     }
+
+    // handle style
+    if (attrs.uifStyle) {
+      switch (OrgChartStyleEnum[attrs.uifStyle]) {
+        case OrgChartStyleEnum.square: elem.children().eq(0).addClass('ms-Persona--square'); break;
+        case OrgChartStyleEnum.standard: break;
+        default:
+          ctrl.$log.error('Error [ngOfficeUIFabric] officeuifabric.components.orgchart - Unsupported style: ' +
+            'The style (\'' + attrs.uifStyle + '\) is not supperted by the Office UI Fabric. ' +
+            'Supported options are: standard(default), square');
+          break;
+      }
+    }
+
+    // handle selectmode (from OrgChart-controller)
+    if (ctrl.selectMode !== undefined) {
+      elem.children().eq(0).addClass('ms-Persona--selectable');
+    }
+
+    // set up watch to change class according to selection
+    scope.$watch('selected', (newValue: boolean, oldValue: boolean): void => {
+
+      if (ctrl.selectMode !== undefined) {
+        if (newValue === true) {
+          elem.children().eq(0).addClass('is-selected');
+        } else {
+
+          elem.children().eq(0).removeClass('is-selected');
+        }
+      }
+
+
+    });
+
+    // keep track of the scopes
+    if (scope.item) {
+      ctrl.items.push(scope);
+    }
+
+    // initial selection
+    if (ctrl.selectMode === OrgChartSelectModeEnum.single || ctrl.selectMode === OrgChartSelectModeEnum.multiple) {
+
+
+      if (scope.selected) {
+
+        if (ctrl.selectMode === OrgChartSelectModeEnum.single) {
+
+          if (ctrl.selectedItems) {
+            ctrl.selectedItems = [];
+          }
+
+          for (let i: number = 0; i < ctrl.items.length; i++) {
+            if (ctrl.items[i] !== scope) {
+              ctrl.items[i].selected = false;
+            }
+          }
+        }
+
+        elem.children().eq(0).addClass('is-selected');
+        if (ctrl.selectedItems) {
+          ctrl.selectedItems.push(scope.item);
+        }
+
+      }
+
+    }
+
+    // handle click on persona LI
+    scope.personaClick = (event: any): void => {
+
+      // flip selected
+      scope.selected = !scope.selected;
+
+      // if selected
+      if (scope.selected) {
+
+        // single
+        if (ctrl.selectMode === OrgChartSelectModeEnum.single) {
+
+          if (ctrl.items) {
+            for (let i: number = 0; i < ctrl.items.length; i++) {
+              if (ctrl.items[i] !== scope) {
+                ctrl.items[i].selected = false;
+              }
+            }
+
+          }
+
+          elem.children().eq(0).addClass('is-selected');
+          ctrl.selectedItems = [];
+          ctrl.selectedItems.push(scope.item);
+
+        }
+
+        // multiple
+        if (ctrl.selectMode === OrgChartSelectModeEnum.multiple) {
+
+          elem.children().eq(0).addClass('is-selected');
+          if (ctrl.selectedItems) {
+            ctrl.selectedItems.push(scope.item);
+          }
+
+        }
+
+      } else {
+
+        elem.children().eq(0).removeClass('is-selected');
+        if (ctrl.selectedItems) {
+          let index: number = ctrl.selectedItems.indexOf(scope.item);
+          if (index > -1) {
+            ctrl.selectedItems.splice(index, 1);
+          }
+        }
+
+      }
+
+      scope.$apply();
+
+    };
+
+    // create event for click on LI element if any selection mode
+    if ((ctrl.selectMode === OrgChartSelectModeEnum.single || ctrl.selectMode === OrgChartSelectModeEnum.multiple) && scope.item) {
+      elem.children().eq(0).on('click', scope.personaClick);
+    }
+
+  }
+
+}
+
+/**
+ * @ngdoc directive
+ * @name uifOrgChartImage
+ * @module officeuifabric.components.orgchart
+ *
+ * @restrict E
+ *
+ * @description
+ * `<uif-org-chart-image />` is a directive used within <uif-org-chart-persona/> directive
+ *
+ * @see {link http://dev.office.com/fabric/components/orgchart}
+ *
+ * @usage
+ *
+ * <uif-org-chart-image ng-src="item.imageUrl"></uif-org-chart-image>
+ *
+ */
+export class OrgChartImageDirective implements ng.IDirective {
+
+  public restrict: string = 'E';
+  public replace: boolean = true;
+  public template: string = `
+    <div class="ms-Persona-imageArea">
+      <i class="ms-Persona-placeholder ms-Icon ms-Icon--person"></i>
+      <img class="ms-Persona-image" ng-src="{{ngSrc}}" />
+    </div>
+    `;
+
+  public scope: {} = {
+    ngSrc: '='
+  };
+
+  public static factory(): ng.IDirectiveFactory {
+    const directive: ng.IDirectiveFactory = () => new OrgChartImageDirective();
+    return directive;
+  }
+
+}
+
+/**
+ * @ngdoc directive
+ * @name uifOrgChartPresence
+ * @module officeuifabric.components.orgchart
+ *
+ * @restrict E
+ *
+ * @description
+ * `<uif-org-chart-presence />` is a directive used within <uif-org-chart-persona/> directive
+ *
+ * @see {link http://dev.office.com/fabric/components/orgchart}
+ *
+ * @usage
+ *
+ * <uif-org-chart-presence></uif-org-chart-presence>
+ *
+ */
+export class OrgChartPresenceDirective implements ng.IDirective {
+
+  public restrict: string = 'E';
+  public replace: boolean = true;
+  public template: string = '<div class="ms-Persona-presence" ></div>';
+
+  public static factory(): ng.IDirectiveFactory {
+    const directive: ng.IDirectiveFactory = () => new OrgChartPresenceDirective();
+    return directive;
+  }
+
+  public link(scope: any, elem: ng.IAugmentedJQuery, attrs: any, ctrl: any): void {
+
+    if (!scope.$parent.presence) {
+      elem.css('display', 'none');
+    }
+
+  }
+
+}
+
+/**
+ * @ngdoc directive
+ * @name uifOrgChartDetails
+ * @module officeuifabric.components.orgchart
+ *
+ * @restrict E
+ *
+ * @description
+ * `<uif-org-chart-details />` is a directive used within <uif-org-chart-persona/> directive
+ *
+ * @see {link http://dev.office.com/fabric/components/orgchart}
+ *
+ * @usage
+ *
+ * <uif-org-chart-details>
+ *   <uif-org-chart-primary-text>Lorem Ipsum</uif-org-chart-primary-text>
+ *   <uif-org-chart-secondary-text>Lorem Ipsum</uif-org-chart-secondary-text>
+ * </uif-org-chart-details>
+ *
+ */
+export class OrgChartDetailsDirective implements ng.IDirective {
+
+  public restrict: string = 'E';
+  public transclude: boolean = true;
+  public replace: boolean = true;
+  public template: string = '<div class="ms-Persona-details" ng-transclude ></div>';
+
+  public static factory(): ng.IDirectiveFactory {
+    const directive: ng.IDirectiveFactory = () => new OrgChartDetailsDirective();
+    return directive;
+  }
+
+}
+
+/**
+ * @ngdoc directive
+ * @name uifOrgChartPrimaryText
+ * @module officeuifabric.components.orgchart
+ *
+ * @restrict E
+ *
+ * @description
+ * `<uif-org-chart-primary-text />` is a directive used within <uif-org-chart-details/> directive
+ *
+ * @see {link http://dev.office.com/fabric/components/orgchart}
+ *
+ * @usage
+ *
+ * <uif-org-chart-primary-text>{{item.name}}</uif-org-chart-primary-text>
+ *
+ */
+export class OrgChartPrimaryTextDirective implements ng.IDirective {
+
+  public restrict: string = 'E';
+  public transclude: boolean = true;
+  public replace: boolean = true;
+  public template: string = '<div class="ms-Persona-primaryText" ng-transclude ></div>';
+
+  public static factory(): ng.IDirectiveFactory {
+    const directive: ng.IDirectiveFactory = () => new OrgChartPrimaryTextDirective();
+    return directive;
+  }
+
+}
+
+/**
+ * @ngdoc directive
+ * @name uifOrgChartSecondaryText
+ * @module officeuifabric.components.orgchart
+ *
+ * @restrict E
+ *
+ * @description
+ * `<uif-org-chart-secondary-text />` is a directive used within <uif-org-chart-details/> directive
+ *
+ * @see {link http://dev.office.com/fabric/components/orgchart}
+ *
+ * @usage
+ *
+ * <uif-org-chart-secondary-text>item.title</uif-org-chart-secondary-text>
+ *
+ */
+export class OrgChartSecondaryTextDirective implements ng.IDirective {
+
+  public restrict: string = 'E';
+  public transclude: boolean = true;
+  public replace: boolean = true;
+  public template: string = '<div class="ms-Persona-secondaryText" ng-transclude ></div>';
+
+  public static factory(): ng.IDirectiveFactory {
+    const directive: ng.IDirectiveFactory = () => new OrgChartSecondaryTextDirective();
+    return directive;
+  }
+
 }
 
 /**
  * @ngdoc filter
  * @name OrgChartGroupByFilter
  * @module officeuifabric.components.orgchart
- * 
- * @description
- * Filter used by the the OrgChartDirective
- */
-export class OrgChartGroupByFilter  {
-
-    public static factory(): any {
-
-        return function(collection: any[], key: string): any[] {
-            let result: any[] = [];
-            if (!collection) {
-                return;
-            }
-
-            for (let i: number = 0; i < collection.length; i++) {
-                let value: string = collection[i][key];
-                if (result.indexOf(value) === -1) {
-                    result.push(value);
-                }
-            }
-
-            return result;
-
-        };
-    }
-}
-
-/**
- * @ngdoc filter
- * @name OrgChartSelectModeEnum
- * @module officeuifabric.components.orgchart
- * 
- * @description
- * enum used by the OrcChartDirective
- */
-export enum OrgChartSelectModeEnum {
-    none,
-    single,
-    multiple
-}
-
-/**
- * @ngdoc enum
- * @name OrgChartStyleModeEnum
- * @module officeuifabric.components.orgchart
  *
  * @description
- * enum used by the OrcChartDirective
+ * Filter used by the the OrgChartDirective to group items
+ *
+ * @usage
+ *
+ *
+ *
+ *
  */
-export enum OrgChartStyleModeEnum {
-    standard,
-    square
+export class OrgChartGroupByFilter {
+
+  public static factory(): any {
+
+    return function(collection: any[], key: string): any[] {
+      let result: any[] = [];
+      if (!collection) {
+        return;
+      }
+
+      for (let i: number = 0; i < collection.length; i++) {
+        let value: string = collection[i][key];
+        if (result.indexOf(value) === -1) {
+          result.push(value);
+        }
+      }
+
+      return result;
+
+    };
+  }
 }
 
 /**
- * @ngdoc enum
- * @name OrgChartPresenceModeEnum
- * @module officeuifabric.components.orgchart
+ * @ngdoc module
+ * @name officeuifabric.components.orgchart
  *
  * @description
- * enum used by the OrcChartDirective
+ * OrgChart
  */
-export enum OrgChartPresenceModeEnum {
-    none,
-    available,
-    busy,
-    away,
-    blocked
-}
-
-
 export var module: ng.IModule = ng.module('officeuifabric.components.orgchart', [
-    'officeuifabric.components'
-  ])
+  'officeuifabric.components'
+])
   .directive('uifOrgChart', OrgChartDirective.factory())
+  .directive('uifOrgChartGroup', OrgChartGroupDirective.factory())
+  .directive('uifOrgChartGroupTitle', OrgChartGroupTitleDirective.factory())
+  .directive('uifOrgChartList', OrgChartListDirective.factory())
   .directive('uifOrgChartPersona', OrgChartPersonaDirective.factory())
+  .directive('uifOrgChartImage', OrgChartImageDirective.factory())
+  .directive('uifOrgChartPresence', OrgChartPresenceDirective.factory())
+  .directive('uifOrgChartDetails', OrgChartDetailsDirective.factory())
+  .directive('uifOrgChartPrimaryText', OrgChartPrimaryTextDirective.factory())
+  .directive('uifOrgChartSecondaryText', OrgChartSecondaryTextDirective.factory())
   .filter('uifOrgChartGroupBy', OrgChartGroupByFilter.factory);
