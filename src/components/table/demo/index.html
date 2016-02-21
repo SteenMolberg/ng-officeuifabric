@@ -17,7 +17,7 @@
 
 <body ng-app="demoApp">
 
-  <h1 class="ms-font-su">Table Demo | &lt;uif-table&gt;</h1> 
+  <h1 class="ms-font-su">Table Demo | &lt;uif-table&gt;</h1>
   <em>In order for this demo to work you must first build the library in debug mode.</em>
 
   <p>
@@ -62,18 +62,18 @@
             </uif-table-row>
         </uif-table>
   </p>
-  
+
   <h2>Selecting rows</h2>
   <p>
       The <code>&lt;uif-table-row-select&gt;</code> directive renders a control that can be used to select and unselect rows.
       Although the directive is already present, support for selecting rows will be added in the future.
   </p>
-  
+
   <h2>Marking rows as selected</h2>
   <p>
       Rows can be marked as selected using the <code>uif-selected</code> attribute on the <code>&lt;uif-table-row&gt;</code> directive.
   </p>
-  
+
   <h2>Sorting table</h2>
   <p>
     The <code>uif-table</code> directive supports sorting. To enable sorting you need to complete the following steps:
@@ -133,7 +133,7 @@
             </uif-table-row>
         </uif-table>
   </p>
-  
+
   <h2>Selecting rows</h2>
   <p>
       The <code>uif-table</code> directive supports three different modes for selecting table rows:
@@ -292,6 +292,36 @@
             <uif-table-cell>{{f.size}}</uif-table-cell>
         </uif-table-row>
     </uif-table>
+
+    <br/>
+<br/>
+
+    <uif-table uif-row-select-mode="multiple">
+        <uif-table-row>
+            <uif-table-row-select></uif-table-row-select>
+            <uif-table-header uif-order-by="fileName">File name</uif-table-header>
+            <uif-table-header>Location</uif-table-header>
+            <uif-table-header uif-order-by="modified">Modified</uif-table-header>
+            <uif-table-header uif-order-by="type">Type</uif-table-header>
+            <uif-table-header uif-order-by="size">Size</uif-table-header>
+        </uif-table-row>
+        <uif-table-row ng-repeat="f in files2 | orderBy:table.orderBy:!table.orderAsc" uif-item="f" uif-selected="{{f.isSelected}}">
+            <uif-table-row-select></uif-table-row-select>
+            <uif-table-cell>{{f.fileName}}</uif-table-cell>
+            <uif-table-cell>{{f.location}}</uif-table-cell>
+            <uif-table-cell>{{f.modified | date}}</uif-table-cell>
+            <uif-table-cell>{{f.type}}</uif-table-cell>
+            <uif-table-cell>{{f.size}}</uif-table-cell>
+        </uif-table-row>
+    </uif-table>
+
+<br/>
+<br/>
+
+    <button type="button" ng-click="showSelected()" >Show selected</button>
+
+    <button type="button" ng-click="showFiles()" >Show files</button>
+
   </p>
 </body>
 
